@@ -30,3 +30,34 @@ export interface TokenPayload {
   id: string // id 
   role: Role
 }
+
+// src/types/index.ts — add this
+
+export const INCOME_CATEGORIES = [
+  'salary',
+  'freelance',
+  'investment',
+  'business',
+  'rental',
+  'bonus',
+  'other_income'
+] as const
+
+export const EXPENSE_CATEGORIES = [
+  'rent',
+  'utilities',
+  'groceries',
+  'transport',
+  'healthcare',
+  'entertainment',
+  'education',
+  'subscription',
+  'office_supplies',
+  'marketing',
+  'taxes',
+  'other_expense'
+] as const
+
+export type IncomeCategory = typeof INCOME_CATEGORIES[number]
+export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number]
+export type TransactionCategory = IncomeCategory | ExpenseCategory
