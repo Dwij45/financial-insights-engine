@@ -5,33 +5,19 @@ import {
   EXPENSE_CATEGORIES,
   type TransactionCategory
 } from '../types/index.js'
-// import { deleteCacheByPattern } from '../utils/cache.js'
+import { deleteCacheByPattern } from '../config/cache.js'
 
 import type { CreateTransactionInput, UpdateTransactionInput, TransactionFilters, PaginatedTransactions } from '../types/transaction.types.js'
-
-export const validateCategoryForType = (
-  type: 'income' | 'expense',
-  category: string
-): { valid: boolean; message?: string } => {
-  if (type === 'income' && !INCOME_CATEGORIES.includes(category as never)) {
-    return {
-      valid: false,
-      message: `Invalid category for income. Valid options: ${INCOME_CATEGORIES.join(', ')}`
-    }
-  }
-
-  if (type === 'expense' && !EXPENSE_CATEGORIES.includes(category as never)) {
-    return {
-      valid: false,
-      message: `Invalid category for expense. Valid options: ${EXPENSE_CATEGORIES.join(', ')}`
-    }
-  }
-
-  return { valid: true }
-}
+import { isFutureDate } from '../utils/dateChecker.js'
+import {validateCategoryForType} from '../utils/categoryType.js'
 
 const createTransaction = async (input: CreateTransactionInput): Promise<ITransaction> => {
-const validation = validateCategoryForType(input.type, input.category)
+if (isFutureDate(input.date)) {
+    const error = new Error('Transaction date cannot be in the future') as Error & { statusCode: number }
+    error.statusCode = 400
+    throw error
+  }
+  const validation = validateCategoryForType(input.type, input.category)
 if (!validation.valid) {
       const error = new Error(validation.message) as Error & { statusCode: number }
       error.statusCode = 400
@@ -41,11 +27,18 @@ if (!validation.valid) {
       ...input,
       date: new Date(input.date)
     })
+    deleteCacheByPattern('dashboard:') 
     return transaction
 }
 
 const updateTransaction = async (Id: string, input: UpdateTransactionInput) : Promise<ITransaction | null> => {
-const transaction = await Transaction.findById(Id)
+  
+if (isFutureDate(input.date as string)) {
+    const error = new Error('Transaction date cannot be in the future') as Error & { statusCode: number }
+    error.statusCode = 400
+    throw error
+  }
+  const transaction = await Transaction.findById(Id)
 
     if (!transaction) return null
 
@@ -65,6 +58,7 @@ const transaction = await Transaction.findById(Id)
     if (input.comment !== undefined) transaction.comment = input.comment
 
     await transaction.save()
+    deleteCacheByPattern('dashboard:') 
 
     return transaction
 }
@@ -113,7 +107,7 @@ const {
 
     // Pagination — cap limit at 50
     const pageNum = Math.max(1, parseInt(page))
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit)))
+    const limitNum = limit ? Math.min(50, Math.max(1, parseInt(limit))): 10
     const skip = (pageNum - 1) * limitNum
 
     const [transactions, total] = await Promise.all([

@@ -1,7 +1,13 @@
-import type { Request, response } from "express"
+import type { Request, Response } from "express"
 import Transaction  from '../models/transaction.model.js'
+import { cacheUtils,setCacheUtils } from '../utils/cache.util.js'
+import { set } from "mongoose"
 
 const getSummary = async (req: Request, res: Response) => {
+
+    const CACHE_KEY = 'dashboard:summary'
+    const cached = cacheUtils(CACHE_KEY, res)
+
      const result = await Transaction.aggregate([
 
       { $match: { isDeleted: false } },
@@ -20,6 +26,13 @@ const getSummary = async (req: Request, res: Response) => {
     const totalIncome   = income?.total   ?? 0
     const totalExpenses = expense?.total  ?? 0
 
+    setCacheUtils(CACHE_KEY, {
+      totalIncome,
+      totalExpenses,
+      netBalance:          totalIncome - totalExpenses,
+      totalTransactions:  (income?.count ?? 0) + (expense?.count ?? 0)
+    }, res)
+
     return {
       totalIncome,
       totalExpenses,
@@ -28,6 +41,9 @@ const getSummary = async (req: Request, res: Response) => {
     }
 }
 const getcategorySummary = async (req: Request, res: Response) => {
+  const CACHE_KEY = 'dashboard:categories'
+  const cached = cacheUtils(CACHE_KEY, res)
+
 const result = await Transaction.aggregate([
       { $match: { isDeleted: false } },
       {
@@ -51,17 +67,21 @@ const result = await Transaction.aggregate([
         }
       }
     ])
+    setCacheUtils(CACHE_KEY, {
+      income:  result.filter(r => r.type === 'income'),
+      expense: result.filter(r => r.type === 'expense')
+    }, res)
     return {
       income:  result.filter(r => r.type === 'income'),
       expense: result.filter(r => r.type === 'expense')
     }
 }
-const getRecentActivity = async (limitCount: number = 10) => {
-  
+const getRecentActivity = async (limitCount: number , res: Response) => {
+
     const transactions = await Transaction.find()
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 })
-      .limit(limitCount)
+      .limit(limitCount || 10)
 
     return transactions
   }

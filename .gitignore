@@ -3,3 +3,4 @@ dist
 node_modules
 my.md
 tsconfig.tsbuildinfo
+test-cache.ts

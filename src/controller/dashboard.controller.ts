@@ -25,7 +25,7 @@ const categorySummary = async (req: Request, res: Response) => {
 const recentActivity = async (req: Request, res: Response) => {
   const limit = parseInt(req.query.limit as string) || 10
 
-    const data = await dashboardService.getRecentActivity(limit)
+    const data = await dashboardService.getRecentActivity(limit, res)
 
     return res.status(200).json({
       success: true,
