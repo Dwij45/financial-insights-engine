@@ -1,7 +1,7 @@
 import UserModel from "../models/user.model.js";
 import type { RegisterDto } from "../types/index.js";
 
-const findUserByEmail = async (email: string, role:,includePassword = false): Promise<any> => {
+const findUserByEmail = async (email: string,includePassword = false): Promise<any> => {
     const query = UserModel.findOne({ email })
     if (includePassword) {
         query.select('+password')

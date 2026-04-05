@@ -17,3 +17,16 @@ export interface LoginDto {
 export interface CreateTransactionDto {
     
 }
+
+export interface AuthRequest extends Request {
+  user?: {
+    userId: string
+    role: Role
+    isActive: boolean
+  }
+}
+
+export interface TokenPayload {
+  id: string // id 
+  role: Role
+}
