@@ -1,5 +1,4 @@
 import type { AuthRequest } from "../types/index.js";
-import asyncHandler from "../utils/asyncHandler.js";
 import type { Request, Response } from "express";
 
 import  {TransactionService}  from "../services/transaction.services.js";
@@ -56,8 +55,7 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
       data: result
     })
   }
-
-
+  
 export const getTransactionById = async (req: AuthRequest, res: Response) => {
     const id = req.params.id as string
     const transaction = await TransactionService.getById(id)
