@@ -1,6 +1,9 @@
 import dotenv from 'dotenv'
 import path from 'path'
 
+import dns from 'dns'
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
 dotenv.config()
 dotenv.config({ path: path.resolve(process.cwd(), '.env') })
 

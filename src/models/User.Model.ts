@@ -2,20 +2,21 @@ import mongoose, { Document, Schema, Types } from 'mongoose'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import type { Role } from '../types/index.js'
+import { getRequiredEnv } from '../config/env.js'
 
-const JWT_SECRET = process.env.JWT_SECRET 
+const JWT_SECRET = getRequiredEnv('JWT_SECRET')
 
 export interface IUser extends Document {
     name: String,
     email: String,
     password: String,
     role: Role,
-    isActive: Boolean,
+    isActive: boolean,
     createdAt: Date,
     updatedAt: Date,
     comparePassword: (candidatePassword: string) => Promise<boolean>
     generateAuthToken: () => string
-
+    hashPassword(password: string): Promise<string>;
 }
 
 const UserSchema : Schema<IUser> = new Schema({
@@ -41,3 +42,6 @@ UserSchema.methods.generateAuthToken = function() {
     const token = jwt.sign({ id: this._id, role: this.role },JWT_SECRET as string, { expiresIn: '48h' })
     return token
 }
+
+const UserModel = mongoose.model<IUser>('User', UserSchema)
+export default UserModel
