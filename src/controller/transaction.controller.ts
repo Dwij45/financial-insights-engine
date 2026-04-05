@@ -47,8 +47,7 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
       data: { transaction }
     })
   }
-export const getTransactions = asyncHandler(
-  async (req: AuthRequest, res: Response) => {
+export const getTransactions = async (req: AuthRequest, res: Response) => {
     const result = await TransactionService.getAll(req.query as Record<string, string>)
 
     return res.status(200).json({
@@ -57,4 +56,22 @@ export const getTransactions = asyncHandler(
       data: result
     })
   }
-)
+
+
+export const getTransactionById = async (req: AuthRequest, res: Response) => {
+    const id = req.params.id as string
+    const transaction = await TransactionService.getById(id)
+
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transaction not found.'
+      })
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Transaction fetched successfully.',
+      data: { transaction }
+    })
+  }

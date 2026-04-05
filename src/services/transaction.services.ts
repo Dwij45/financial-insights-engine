@@ -139,7 +139,10 @@ const {
       }
     }
 }
-const getTransactionById = async (transactionId: string, userId: string) => {
+
+const getTransactionById = async (id: string):Promise<ITransaction | null> => {
+
+    return Transaction.findById(id).populate('createdBy', 'name email role')
 
 }
 export const TransactionService = {
