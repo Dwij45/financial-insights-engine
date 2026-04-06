@@ -1,8 +1,8 @@
-// src/config/swagger.ts — all docs in one place
 
 import swaggerUi from 'swagger-ui-express'
 import type { Express } from 'express'
 
+const BaseURL = 'https://financial-insights-engine-1.onrender.com'
 const swaggerDocument = {
   openapi: '3.0.0',
   info: {
@@ -10,6 +10,16 @@ const swaggerDocument = {
     version: '1.0.0',
     description: 'Role based finance management system'
   },
+  servers: [
+    {
+      url: 'https://financial-insights-engine-1.onrender.com',
+      description: 'Production (Render)'
+    },
+    {
+      url: 'http://localhost:3000',
+      description: 'Local Development'
+    }
+  ],
   components: {
     securitySchemes: {
       bearerAuth: {
@@ -186,5 +196,5 @@ const swaggerDocument = {
 
 export const setupSwagger = (app: Express) => {
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
-  console.log('Swagger docs at http://localhost:3000/api/docs')
+  console.log(`Swagger docs at ${BaseURL}/api/docs`)
 }
