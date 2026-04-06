@@ -73,3 +73,12 @@ export const getTransactionById = async (req: AuthRequest, res: Response) => {
       data: { transaction }
     })
   }
+export const deleteTransaction = async (req: AuthRequest, res: Response) => {
+    const id = req.params.id as string
+    const transaction = await TransactionService.delete(id)
+    return res.status(200).json({
+      success: true,
+      message: 'Transaction deleted successfully.',
+      data: { transaction }
+    })
+}

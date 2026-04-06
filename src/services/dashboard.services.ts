@@ -78,7 +78,7 @@ const result = await Transaction.aggregate([
 }
 const getRecentActivity = async (limitCount: number , res: Response) => {
 
-    const transactions = await Transaction.find()
+    const transactions = await Transaction.find({ isDeleted: false })
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 })
       .limit(limitCount || 10)
@@ -123,7 +123,6 @@ const startDate = new Date()
     // { year: 2025, month: 1, type: 'income',  total: 5000 },
     //   { year: 2025, month: 1, type: 'expense', total: 2000 }
 
-    // Reshape into cleaner format grouped by month
     const trendsMap = new Map()
 
     result.forEach(item => {

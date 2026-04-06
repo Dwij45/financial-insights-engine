@@ -1,5 +1,6 @@
 import Transaction  from '../models/transaction.model.js'
 import  type {ITransaction} from '../models/transaction.model.js'
+import mongoose from 'mongoose'
 import {
   INCOME_CATEGORIES,
   EXPENSE_CATEGORIES,
@@ -10,6 +11,10 @@ import { deleteCacheByPattern } from '../config/cache.js'
 import type { CreateTransactionInput, UpdateTransactionInput, TransactionFilters, PaginatedTransactions } from '../types/transaction.types.js'
 import { isFutureDate } from '../utils/dateChecker.js'
 import {validateCategoryForType} from '../utils/categoryType.js'
+
+const isValidObjectId = (id: string): boolean => {
+  return mongoose.Types.ObjectId.isValid(id)
+}
 
 const createTransaction = async (input: CreateTransactionInput): Promise<ITransaction> => {
 if (isFutureDate(input.date)) {
@@ -32,14 +37,16 @@ if (!validation.valid) {
 }
 
 const updateTransaction = async (Id: string, input: UpdateTransactionInput) : Promise<ITransaction | null> => {
-  
+
 if (isFutureDate(input.date as string)) {
     const error = new Error('Transaction date cannot be in the future') as Error & { statusCode: number }
     error.statusCode = 400
     throw error
   }
-  const transaction = await Transaction.findById(Id)
-
+  const transaction = await Transaction.findOne({
+      _id: Id,
+      isDeleted: false
+    })
     if (!transaction) return null
 
     const finalType = input.type ?? transaction.type
@@ -78,7 +85,7 @@ const {
     } = filters
 
     // Build MongoDB filter object
-    const query: Record<string, unknown> = {}
+  const query: Record<string, unknown> = { isDeleted: false }
 
     if (type && ['income', 'expense'].includes(type)) {
       query.type = type
@@ -136,12 +143,41 @@ const {
 
 const getTransactionById = async (id: string):Promise<ITransaction | null> => {
 
-    return Transaction.findById(id).populate('createdBy', 'name email role')
+    if (!isValidObjectId(id)) {
+      const err = new Error('Invalid transaction ID format') as Error & { statusCode: number }
+      err.statusCode = 400
+      throw err
+    }
+    const transaction = await Transaction.findOne({
+      _id: id,
+      isDeleted: false          // only return if NOT deleted
+    }).populate('createdBy', 'name email role')
 
+    return transaction
+
+}
+const deleteTransaction = async (id: string): Promise<ITransaction | null> => {
+  if (!isValidObjectId(id)) {
+    const error = new Error('Invalid transaction ID format') as Error & { statusCode: number }
+    error.statusCode = 400
+    throw error
+  }
+
+  const transaction = await Transaction.findOneAndUpdate(
+      { _id: id, isDeleted: false },
+      { $set: { isDeleted: true, deletedAt: new Date() } },
+      { new: true }
+    )
+
+  if (!transaction) return null
+
+  deleteCacheByPattern('dashboard:')
+  return transaction
 }
 export const TransactionService = {
     create: createTransaction,
     getAll: getTransactions,
     getById: getTransactionById,
-    update: updateTransaction
+    update: updateTransaction,
+    delete: deleteTransaction
 }

@@ -14,7 +14,6 @@ import errorHandler from './middleware/errorHandler.js'
 import { apiLimiter, authLimiter } from './middleware/ratelimiter.js'
 const app = express()
 
-connectDB()
 const swaggerSpec = setupSwagger(app) as any
 
 app.use(express.json())
