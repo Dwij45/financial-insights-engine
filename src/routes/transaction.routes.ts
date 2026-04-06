@@ -9,6 +9,6 @@ transrouter.post('/', authMiddleware, roleAccess(['admin']),createTransaction)
 transrouter.get('/', authMiddleware, roleAccess(['admin','viewer','analyst']),getTransactions)
 transrouter.put('/:id', authMiddleware, roleAccess(['admin']),updateTransaction)
 transrouter.get('/:id', authMiddleware, roleAccess(['admin','viewer','analyst']),getTransactionById)
-transrouter.post('/delete/:id', authMiddleware, roleAccess(['admin']),deleteTransaction)
+transrouter.delete('/:id', authMiddleware, roleAccess(['admin']),deleteTransaction)
 
 export default transrouter

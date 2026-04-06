@@ -34,15 +34,16 @@ Key improvements over ExpenseSync:
 ---
 
 ## Features
-
-- **3-tier RBAC** — Viewer, Analyst, Admin enforced at middleware level
-- **Financial records** — CRUD with fixed categories, date validation, sorting, filtering, pagination
-- **Dashboard analytics** — MongoDB aggregation: summary, category totals, monthly/weekly trends
-- **Soft delete** — records never permanently removed, full audit trail preserved
-- **Caching** — dashboard responses cached with TTL and invalidated on writes
-- **Rate limiting** — 10 req/15 min on auth, 100 req/15 min on API
-- **Swagger UI** — fully interactive docs, testable without Postman
-
+ 
+- **3-tier RBAC** — Viewer, Analyst, Admin. Permissions declared at route level via `roleAccess(['admin'])` factory middleware. Controllers contain zero access logic.
+- **Financial records** — full CRUD with 19 fixed categories (split by income/expense type), date validation, sorting, filtering by type/category/date range, search on comment field, and cursor-based pagination capped at 50 per page
+- **Dashboard analytics** — five MongoDB aggregation endpoints: total summary, category-wise totals, recent activity, monthly trends, weekly trends
+- **Soft delete** — `isDeleted` flag + `deletedAt` timestamp on every delete. Records never permanently removed. Every query explicitly filters `{ isDeleted: false }` at the query level — no Mongoose hook, impossible to bypass accidentally
+- **Response caching** — dashboard queries cached with 5–10 min TTL. Automatic invalidation via `deleteCacheByPattern('dashboard:')` on any write. `X-Cache: HIT/MISS` header visible in Swagger and Postman
+- **Rate limiting** — 10 req/15 min on auth routes (brute force protection), 100 req/15 min on all API routes
+- **isActive enforcement** — auth middleware fetches user from DB on every request and checks `isActive`. A deactivated user is rejected immediately even with a valid unexpired token
+- **Swagger UI** — all 15+ endpoints documented with request bodies, query params, and example responses. Fully interactive against the live server without needing Postman
+ 
 ---
 
 ## Project Structure
@@ -153,7 +154,7 @@ GET    /api/transactions/:id
 GET    /api/transactions/categories
 POST   /api/transactions              admin only
 PUT    /api/transactions/:id          admin only
-PUT /api/transactions/:id          admin only (soft delete)
+DELETE /api/transactions/:id       admin only (soft delete)
 ```
 
 **Query params:** `type` · `category` · `startDate` · `endDate` · `sortBy` · `order` · `page` · `limit` · `search`
@@ -192,22 +193,25 @@ PATCH  /api/users/:id/role
 ---
 
 ## Key Design Decisions
-
-**Soft delete over hard delete**  
-Financial records are never permanently removed. DELETE sets `isDeleted: true` and records `deletedAt`. Every query explicitly filters `{ isDeleted: false }` — no Mongoose hook, impossible to accidentally bypass.
-
-**Fixed category enums**  
-Categories are fixed enums split by type (income/expense). Free-text categories caused aggregation inconsistencies in ExpenseSync — this design prevents that entirely.
-
-**Permissions at route level**  
-`roleAccess(['admin'])` is declared on the route itself, not inside controllers. The entire permission model is readable by scanning routes files.
-
-**isActive checked on every request**  
-Auth middleware fetches the user from DB to verify `isActive`. A deactivated user is blocked immediately, even with a valid unexpired token.
-
-**Cache invalidation on writes**  
-Dashboard cache keys are invalidated using `deleteCacheByPattern('dashboard:')` on every create, update, or soft delete. Cache hit/miss is visible via the `X-Cache` response header.
-
+ 
+**Permissions enforced at the route layer, not in controllers**  
+`roleAccess(['admin'])` is declared directly on each route definition. The entire permission model is auditable by reading routes files alone — no role checks are buried inside controller or service code. This also means controllers stay focused on a single responsibility: read request, call service, send response.
+ 
+**Soft delete with explicit query filters**  
+Every delete operation sets `isDeleted: true` and records `deletedAt`. There is no Mongoose pre-hook — instead, every `find`, `findOne`, `aggregate`, and `countDocuments` call includes `{ isDeleted: false }` explicitly. This is more verbose but impossible to accidentally bypass, which matters for financial data. A soft-deleted record accessed by ID returns a clean 404 — the same response as a record that never existed.
+ 
+**Fixed category enums split by type**  
+Categories are validated against their transaction type at the service layer — you cannot assign an expense category to an income transaction. This was directly motivated by ExpenseSync where free-text categories produced unreliable dashboard aggregations. The `GET /transactions/categories` endpoint returns all valid values so a frontend never needs to hardcode them.
+ 
+**isActive verified on every authenticated request**  
+Auth middleware fetches the user from MongoDB on every request to check `isActive`. This means deactivating an account takes effect on the next request — the user does not need to wait for their JWT to expire. The trade-off is one additional DB read per request, which is acceptable for a financial system where access revocation needs to be immediate.
+ 
+**JWT carries role in payload**  
+The token payload includes `{ id, role }` so roleAccess never needs a DB call — it reads directly from `req.user.role` set by auth middleware. The trade-off is that a role change is not reflected until the current token expires (48h TTL). This is a conscious choice: the simplicity and performance benefit outweighs the delay for this use case.
+ 
+**node-cache over Redis**  
+node-cache provides zero-setup in-process caching with an interface identical to a Redis client. For a single-instance deployment it is equivalent. The cache utility (`utils/cache.ts`) wraps it behind `getCache`, `setCache`, and `deleteCacheByPattern` functions — swapping to Redis in production requires only changing the implementation of those three functions.
+ 
 ---
 
 ## Error Codes
