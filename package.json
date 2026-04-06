@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --forceExit --detectOpenHandles",
-    "dev": "tsc -b && node dist/server.js"
+    "build": "tsc -b",
+    "start": "node dist/server.js",
+    "dev": "tsc -b && node dist/server.js",
+    "test": "jest --forceExit --detectOpenHandles"
   },
   "keywords": [],
   "author": "",

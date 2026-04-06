@@ -10,6 +10,6 @@ const authRouter = Router()
 
 authRouter.post('/register', authController.register)
 // authRouter.post('/register', authMiddleware, roleAccess(['admin']), authController.register)
-authRouter.post('/login', authMiddleware, roleAccess(['admin']), authController.login)
+authRouter.post('/login', authController.login)
 
 export default authRouter

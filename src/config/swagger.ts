@@ -186,5 +186,5 @@ const swaggerDocument = {
 
 export const setupSwagger = (app: Express) => {
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
-  console.log('Swagger docs at /api/docs')
+  console.log('Swagger docs at http://localhost:3000/api/docs')
 }
